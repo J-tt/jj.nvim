@@ -61,13 +61,14 @@ function M.parse_file_info_from_status_line(line)
 
 	line = vim.trim(line)
 
-	-- Handle renamed files in nested path form:
-	--   R dir/{old_name => new_name}
-	local dir_path, old_name, new_name = line:match("^R%s+(.*)/{(.*)%s=>%s([^}]+)}$")
+	-- Handle renamed files in nested path form with optional suffix:
+	--   R dir/{old_name => new_name}/file.go  or  R dir/{old_name → new_name}/file.go
+	local dir_path, old_name, new_name, suffix = line:match("^R%s+(.-){(.-)[%s]?[→=>]+[%s]?([^}]+)}(.*)$")
 	if dir_path and old_name and new_name then
+		suffix = suffix or ""
 		return {
-			old_path = dir_path .. "/" .. old_name,
-			new_path = dir_path .. "/" .. new_name,
+			old_path = dir_path .. old_name .. suffix,
+			new_path = dir_path .. new_name .. suffix,
 			is_rename = true,
 		}
 	end
