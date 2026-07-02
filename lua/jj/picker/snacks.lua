@@ -77,6 +77,19 @@ local function format_conflict_item(item)
 	return ret
 end
 
+--- Fetch a one-line summary of the working copy and its parent(s) for display.
+--- Returns a string like "@ abc feat: my change  ○ def parent commit"
+local function get_commit_summary()
+	local output, ok = runner.execute_command(
+		"jj log -r '@|parents(@)' --no-graph -T 'if(current_working_copy, \"@ \", \"○ \") ++ change_id.shortest() ++ \" \" ++ coalesce(description.first_line(), \"(no description)\") ++ \"\\n\"'"
+	)
+	if not ok or not output then
+		return nil
+	end
+	local lines = vim.split(vim.trim(output), "\n", { trimempty = true })
+	return table.concat(lines, "  ")
+end
+
 --- Displays the status files in a snacks picker
 ---@param opts  jj.picker.config
 ---@param files jj.picker.file[]
@@ -88,10 +101,13 @@ function M.status(opts, files)
 	local snacks = require("snacks")
 	local snacks_opts = get_snacks_opts(opts)
 
+	local summary = get_commit_summary()
+	local title = summary and ("JJ Status  " .. summary) or "JJ Status"
+
 	local merged_opts = vim.tbl_deep_extend("force", snacks_opts, {
 		source = "jj",
 		items = files,
-		title = "JJ Status",
+		title = title,
 		format = "git_status",
 		actions = {
 			open_and_diff = function(picker, item)
